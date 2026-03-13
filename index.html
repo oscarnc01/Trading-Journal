@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-title" content="Trade Log">
 <meta name="theme-color" content="#080b0e">
 <title>Trade Log</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -1121,7 +1123,7 @@ function editTrade(id,btn){
       <div class="edit-field"><label>Salida</label><input class="edit-input" id="ei-salida" type="number" value="${trade.salida??''}" min="0" step="any" inputmode="decimal" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field"><label>Pip value ($)</label><input class="edit-input" id="ei-pip" type="number" value="${trade.pip??''}" placeholder="10" min="0" step="any" inputmode="decimal" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field"><label>Beneficio</label><input class="edit-input" id="ei-beneficio" type="number" value="${trade.beneficio}" step="any" inputmode="decimal"></div>
-      <div class="edit-field"><label>Swap</label><div style="display:flex;gap:6px"><input class="edit-input" id="ei-swap" type="text" inputmode="decimal" value="${trade.swap??0}" oninput="autoCalcEditBeneficio()" style="flex:1;min-width:0"><button type="button" onclick="toggleEditSwapSign()" style="padding:0 10px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:6px;color:var(--text);font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">±</button></div></div>
+      <div class="edit-field"><label>Swap</label><div style="display:flex;gap:6px"><input class="edit-input" id="ei-swap" type="text" inputmode="decimal" value="${trade.swap??0}" oninput="autoCalcEditBeneficio()" style="flex:1;min-width:0"><button type="button" id="ei-swap-sign" style="padding:0 10px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:6px;color:var(--text);font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation">±</button></div></div>
       <div class="edit-field"><label>Comisión</label><input class="edit-input" id="ei-comision" type="text" inputmode="decimal" value="${trade.comision??0}" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field" style="grid-column:1/-1"><label>Notas</label><input class="edit-input" id="ei-notas" type="text" value="${trade.notas||''}"></div>
     </div>
@@ -1131,6 +1133,8 @@ function editTrade(id,btn){
     </div>
   </div></td>`;
   tr.after(editTr);
+  const swapSignBtn=document.getElementById('ei-swap-sign');
+  if(swapSignBtn) swapSignBtn.setAttribute('onclick','toggleEditSwapSign()');
   document.getElementById('ei-fecha').focus();
 }
 
