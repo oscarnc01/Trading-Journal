@@ -594,24 +594,24 @@ tr:hover td{background:rgba(0,212,255,0.02);}
   <!-- ══ TAB: SYNC / SETTINGS ══════════════════════════════════ -->
   <div class="tab-content" id="tab-sync">
     <div class="panel" style="max-width:480px;margin:0 auto">
-      <div class="panel-head"><span class="panel-title">⚙ SINCRONIZACIÓN GITHUB</span></div>
+      <div class="panel-head"><span class="panel-title">⚙ SINCRONIZACIÓN GITLAB</span></div>
       <div style="padding:0 4px;font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:16px">
-        Tus trades se guardarán en un archivo JSON en tu repositorio de GitHub y se sincronizarán entre todos tus dispositivos.
+        Tus trades se guardarán en un repositorio <b style="color:var(--text)">privado</b> de GitLab y se sincronizarán entre todos tus dispositivos.
       </div>
 
       <div class="field">
-        <label>Usuario GitHub</label>
+        <label>Usuario GitLab</label>
         <input type="text" id="gh-user" placeholder="tu-usuario" autocomplete="off" autocorrect="off" autocapitalize="off">
       </div>
       <div class="field">
-        <label>Repositorio</label>
+        <label>Nombre del repositorio</label>
         <input type="text" id="gh-repo" placeholder="trading-journal-data" autocomplete="off" autocorrect="off" autocapitalize="off">
       </div>
       <div class="field">
         <label>Personal Access Token
-          <a href="https://github.com/settings/tokens/new?scopes=repo&description=TradingJournal" target="_blank" style="font-size:10px;color:var(--accent);margin-left:6px;text-decoration:none">Crear token →</a>
+          <a href="https://gitlab.com/-/user_settings/personal_access_tokens" target="_blank" style="font-size:10px;color:var(--accent);margin-left:6px;text-decoration:none">Crear token →</a>
         </label>
-        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+        <input type="password" id="gh-token" placeholder="glpat-xxxxxxxxxxxx" autocomplete="off">
       </div>
 
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -624,8 +624,8 @@ tr:hover td{background:rgba(0,212,255,0.02);}
 
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.8">
         <div style="font-family:var(--display);font-size:11px;letter-spacing:.08em;color:var(--text2);margin-bottom:6px">INSTRUCCIONES</div>
-        <div>1. Crea un repositorio <b style="color:var(--text)">privado</b> en GitHub</div>
-        <div>2. Genera un token con permisos <b style="color:var(--text)">repo</b> (enlace arriba)</div>
+        <div>1. Crea un repositorio <b style="color:var(--text)">privado</b> en GitLab</div>
+        <div>2. Genera un token con permisos <b style="color:var(--text)">api</b> (enlace arriba)</div>
         <div>3. Introduce los datos y pulsa <b style="color:var(--text)">Guardar Config</b></div>
         <div>4. Los trades se suben automáticamente al registrar</div>
         <div>5. En un nuevo dispositivo, introduce la config y pulsa <b style="color:var(--text)">Descargar</b></div>
@@ -1055,8 +1055,12 @@ function autoCalcEditBeneficio(){
   const entrada=parseFloat(document.getElementById('ei-entrada')?.value);
   const salida=parseFloat(document.getElementById('ei-salida')?.value);
   const pip=parseFloat(document.getElementById('ei-pip')?.value);
-  if(!isNaN(lotes)&&!isNaN(entrada)&&!isNaN(salida)&&!isNaN(pip)&&pip>0){
-    const ben=(salida-entrada)*lotes*pip;
+  const swap=parseFloat(String(document.getElementById('ei-swap')?.value||'0').replace(',','.'))||0;
+  const comision=parseFloat(String(document.getElementById('ei-comision')?.value||'0').replace(',','.'))||0;
+  const tipo=document.getElementById('ei-tipo')?.value||'long';
+  if(!isNaN(lotes)&&!isNaN(entrada)&&!isNaN(salida)&&!isNaN(pip)&&pip>0&&lotes>0){
+    const dir=tipo==='short'?-1:1;
+    const ben=(salida-entrada)*dir*lotes*pip+swap+comision;
     document.getElementById('ei-beneficio').value=parseFloat(ben.toFixed(2));
   }
 }
@@ -1117,6 +1121,8 @@ function editTrade(id,btn){
       <div class="edit-field"><label>Salida</label><input class="edit-input" id="ei-salida" type="number" value="${trade.salida??''}" min="0" step="any" inputmode="decimal" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field"><label>Pip value ($)</label><input class="edit-input" id="ei-pip" type="number" value="${trade.pip??''}" placeholder="10" min="0" step="any" inputmode="decimal" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field"><label>Beneficio</label><input class="edit-input" id="ei-beneficio" type="number" value="${trade.beneficio}" step="any" inputmode="decimal"></div>
+      <div class="edit-field"><label>Swap</label><input class="edit-input" id="ei-swap" type="text" inputmode="decimal" value="${trade.swap??0}" oninput="autoCalcEditBeneficio()"></div>
+      <div class="edit-field"><label>Comisión</label><input class="edit-input" id="ei-comision" type="text" inputmode="decimal" value="${trade.comision??0}" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field" style="grid-column:1/-1"><label>Notas</label><input class="edit-input" id="ei-notas" type="text" value="${trade.notas||''}"></div>
     </div>
     <div class="edit-actions">
@@ -1138,9 +1144,11 @@ function saveTrade(id){
   const beneficio=parseFloat(document.getElementById('ei-beneficio').value);
   const notas=document.getElementById('ei-notas').value.trim();
   const pip=parseFloat(document.getElementById('ei-pip').value);
+  const swap=parseFloat(String(document.getElementById('ei-swap').value).replace(',','.'))||0;
+  const comision=parseFloat(String(document.getElementById('ei-comision').value).replace(',','.'))||0;
   if(!fecha||!ticker||isNaN(beneficio)){toast('Campos obligatorios vacíos',true);return;}
   const idx=trades.findIndex(t=>t.id===id); if(idx===-1)return;
-  trades[idx]={id,fecha,ticker,tipo,lotes:isNaN(lotes)?null:lotes,entrada:isNaN(entrada)?null:entrada,salida:isNaN(salida)?null:salida,pip:isNaN(pip)?null:pip,beneficio,notas};
+  trades[idx]={id,fecha,ticker,tipo,lotes:isNaN(lotes)?null:lotes,entrada:isNaN(entrada)?null:entrada,salida:isNaN(salida)?null:salida,pip:isNaN(pip)?null:pip,swap,comision,beneficio,notas};
   trades.sort((a,b)=>b.fecha.localeCompare(a.fecha));
   save(); render(); toast('Operación actualizada ✓');
 }
@@ -1722,9 +1730,9 @@ function importFile(input){
 
 function showTab(id,btn){ showMainTab(id,btn); }
 
-// ── GITHUB SYNC ───────────────────────────────────────
+// ── GITLAB SYNC ───────────────────────────────────────
 const GH_CFG_KEY = 'tradelog_gh_config';
-let ghConfig = null; // {user, repo, token}
+let ghConfig = null; // {user, projectId, token}
 
 function ghLoadConfig(){
   try{
@@ -1733,7 +1741,7 @@ function ghLoadConfig(){
   }catch(e){}
   if(ghConfig){
     document.getElementById('gh-user').value=ghConfig.user||'';
-    document.getElementById('gh-repo').value=ghConfig.repo||'';
+    document.getElementById('gh-repo').value=ghConfig.projectId||'';
     document.getElementById('gh-token').value=ghConfig.token||'';
     ghUpdateSyncInfo();
   }
@@ -1741,10 +1749,10 @@ function ghLoadConfig(){
 
 function ghSaveConfig(){
   const user=document.getElementById('gh-user').value.trim();
-  const repo=document.getElementById('gh-repo').value.trim();
+  const projectId=document.getElementById('gh-repo').value.trim();
   const token=document.getElementById('gh-token').value.trim();
-  if(!user||!repo||!token){ toast('Rellena todos los campos',true); return; }
-  ghConfig={user,repo,token};
+  if(!user||!projectId||!token){ toast('Rellena todos los campos',true); return; }
+  ghConfig={user, projectId, token};
   localStorage.setItem(GH_CFG_KEY, JSON.stringify(ghConfig));
   toast('Configuración guardada ✓');
   ghUpdateSyncInfo();
@@ -1759,93 +1767,67 @@ function ghUpdateSyncInfo(){
   const el=document.getElementById('gh-sync-info');
   if(!el) return;
   if(!ghConfig){ el.textContent='No configurado'; return; }
-  el.textContent=`Usuario: ${ghConfig.user}\nRepo: ${ghConfig.repo}\nToken: ${ghConfig.token.substring(0,8)}...`;
+  el.textContent=`Usuario: ${ghConfig.user}\nProyecto ID: ${ghConfig.projectId}\nToken: ${ghConfig.token.substring(0,8)}...`;
 }
 
-function ghFileName(acctId){
-  return `tradelog_${acctId}.json`;
-}
+// GitLab API base
+function glAPI(){ return `https://gitlab.com/api/v4/projects/${encodeURIComponent(ghConfig.user+'/'+ghConfig.projectId)}`; }
+function glHeaders(){ return { 'PRIVATE-TOKEN': ghConfig.token, 'Content-Type':'application/json' }; }
 
-async function ghGetFileSHA(filename){
-  const url=`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${filename}`;
-  const r=await fetch(url,{headers:{
-    'Authorization':'token '+ghConfig.token,
-    'Accept':'application/vnd.github.v3+json'
-  }});
-  if(r.status===404) return null;
-  if(!r.ok) throw new Error('Error al leer SHA: '+r.status);
-  const d=await r.json();
-  return d.sha||null;
-}
+const GL_FILENAME = 'tradelog_data.json';
+const GL_BRANCH = 'main';
 
 async function ghPush(manual=false){
-  if(!ghConfig){ if(manual) toast('Configura GitHub primero',true); return; }
+  if(!ghConfig){ if(manual) toast('Configura GitLab primero',true); return; }
   if(manual) ghSetStatus('Subiendo datos…');
   try{
-    // Build full data object: accounts + all trades
-    const allData = {
-      accounts,
-      accountsData: {}
-    };
-    // Save current account first
-    saveTrades();
-    // Collect all accounts data from localStorage
+    // Build full data object
+    _origSaveTrades();
+    const allData = { accounts, accountsData:{} };
     for(const acct of accounts){
       const s=localStorage.getItem(acctLSKey(acct.id));
-      allData.accountsData[acct.id] = s ? JSON.parse(s) : {trades:[],nextId:1};
+      allData.accountsData[acct.id]=s?JSON.parse(s):{trades:[],nextId:1};
     }
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(allData, null, 2))));
-    const filename = 'tradelog_data.json';
-    const sha = await ghGetFileSHA(filename);
-    const body = {
-      message: 'Trading journal sync ' + new Date().toISOString(),
-      content,
-      ...(sha ? {sha} : {})
-    };
-    const url=`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${filename}`;
-    const r=await fetch(url,{
-      method:'PUT',
-      headers:{
-        'Authorization':'token '+ghConfig.token,
-        'Content-Type':'application/json',
-        'Accept':'application/vnd.github.v3+json'
-      },
-      body: JSON.stringify(body)
+    const content=JSON.stringify(allData, null, 2);
+
+    // Check if file exists
+    const checkUrl=`${glAPI()}/repository/files/${encodeURIComponent(GL_FILENAME)}?ref=${GL_BRANCH}`;
+    const check=await fetch(checkUrl,{headers:glHeaders()});
+    const exists=check.ok;
+
+    const method=exists?'PUT':'POST';
+    const body={ branch:GL_BRANCH, content, commit_message:'Trading journal sync '+new Date().toISOString() };
+    const r=await fetch(`${glAPI()}/repository/files/${encodeURIComponent(GL_FILENAME)}`,{
+      method, headers:glHeaders(), body:JSON.stringify(body)
     });
     if(!r.ok){
-      const err=await r.json();
-      throw new Error(err.message||r.status);
+      const err=await r.json().catch(()=>({}));
+      throw new Error(err.message||err.error||'HTTP '+r.status);
     }
     const now=new Date().toLocaleTimeString('es-ES');
     if(manual){
-      ghSetStatus('✓ Subido correctamente a las '+now, 'var(--accent)');
-      toast('Datos subidos a GitHub ✓');
+      ghSetStatus('✓ Subido a las '+now,'var(--accent)');
+      toast('Datos subidos a GitLab ✓');
     } else {
-      ghSetStatus('✓ Auto-sync '+now, 'var(--text3)');
+      ghSetStatus('✓ Auto-sync '+now,'var(--text3)');
     }
   }catch(e){
-    ghSetStatus('✗ Error: '+e.message, 'var(--red)');
-    if(manual) toast('Error subiendo a GitHub',true);
-    console.error('ghPush error',e);
+    ghSetStatus('✗ Error: '+e.message,'var(--red)');
+    if(manual) toast('Error subiendo a GitLab',true);
+    console.error('glPush error',e);
   }
 }
 
 async function ghPull(){
-  if(!ghConfig){ toast('Configura GitHub primero',true); return; }
+  if(!ghConfig){ toast('Configura GitLab primero',true); return; }
   ghSetStatus('Descargando datos…');
   try{
-    const filename='tradelog_data.json';
-    const url=`https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${filename}`;
-    const r=await fetch(url,{headers:{
-      'Authorization':'token '+ghConfig.token,
-      'Accept':'application/vnd.github.v3+json'
-    }});
-    if(r.status===404){ ghSetStatus('No hay datos en GitHub todavía','var(--warn)'); return; }
+    const url=`${glAPI()}/repository/files/${encodeURIComponent(GL_FILENAME)}/raw?ref=${GL_BRANCH}`;
+    const r=await fetch(url,{headers:glHeaders()});
+    if(r.status===404){ ghSetStatus('No hay datos en GitLab todavía','var(--warn)'); return; }
     if(!r.ok) throw new Error('HTTP '+r.status);
-    const d=await r.json();
-    const json=JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))));
+    const json=await r.json();
     if(!json.accounts||!json.accountsData) throw new Error('Formato inválido');
-    // Restore all data to localStorage
     accounts=json.accounts;
     for(const acctId in json.accountsData){
       localStorage.setItem(acctLSKey(acctId), JSON.stringify(json.accountsData[acctId]));
@@ -1856,12 +1838,12 @@ async function ghPull(){
     renderAcctTabs();
     render();
     const now=new Date().toLocaleTimeString('es-ES');
-    ghSetStatus('✓ Descargado a las '+now, 'var(--accent)');
-    toast('Datos descargados de GitHub ✓');
+    ghSetStatus('✓ Descargado a las '+now,'var(--accent)');
+    toast('Datos descargados de GitLab ✓');
   }catch(e){
     ghSetStatus('✗ Error: '+e.message,'var(--red)');
-    toast('Error descargando de GitHub',true);
-    console.error('ghPull error',e);
+    toast('Error descargando de GitLab',true);
+    console.error('glPull error',e);
   }
 }
 
@@ -1872,7 +1854,7 @@ saveTrades = function(){
   ghPush(false);
 };
 
-// Load GitHub config on init
+// Load config on init
 ghLoadConfig();
 </script>
 </body>
