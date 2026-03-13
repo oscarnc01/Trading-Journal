@@ -1121,7 +1121,7 @@ function editTrade(id,btn){
       <div class="edit-field"><label>Salida</label><input class="edit-input" id="ei-salida" type="number" value="${trade.salida??''}" min="0" step="any" inputmode="decimal" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field"><label>Pip value ($)</label><input class="edit-input" id="ei-pip" type="number" value="${trade.pip??''}" placeholder="10" min="0" step="any" inputmode="decimal" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field"><label>Beneficio</label><input class="edit-input" id="ei-beneficio" type="number" value="${trade.beneficio}" step="any" inputmode="decimal"></div>
-      <div class="edit-field"><label>Swap</label><input class="edit-input" id="ei-swap" type="text" inputmode="decimal" value="${trade.swap??0}" oninput="autoCalcEditBeneficio()"></div>
+      <div class="edit-field"><label>Swap</label><div style="display:flex;gap:6px"><input class="edit-input" id="ei-swap" type="text" inputmode="decimal" value="${trade.swap??0}" oninput="autoCalcEditBeneficio()" style="flex:1;min-width:0"><button type="button" onclick="toggleEditSwapSign()" style="padding:0 10px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:6px;color:var(--text);font-size:18px;font-weight:700;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">±</button></div></div>
       <div class="edit-field"><label>Comisión</label><input class="edit-input" id="ei-comision" type="text" inputmode="decimal" value="${trade.comision??0}" oninput="autoCalcEditBeneficio()"></div>
       <div class="edit-field" style="grid-column:1/-1"><label>Notas</label><input class="edit-input" id="ei-notas" type="text" value="${trade.notas||''}"></div>
     </div>
@@ -1151,6 +1151,13 @@ function saveTrade(id){
   trades[idx]={id,fecha,ticker,tipo,lotes:isNaN(lotes)?null:lotes,entrada:isNaN(entrada)?null:entrada,salida:isNaN(salida)?null:salida,pip:isNaN(pip)?null:pip,swap,comision,beneficio,notas};
   trades.sort((a,b)=>b.fecha.localeCompare(a.fecha));
   save(); render(); toast('Operación actualizada ✓');
+}
+
+function toggleEditSwapSign(){
+  const el=document.getElementById('ei-swap');
+  if(!el) return;
+  const v=parseFloat(el.value.replace(',','.'));
+  if(!isNaN(v)&&v!==0){ el.value=parseFloat((-v).toFixed(2)); autoCalcEditBeneficio(); }
 }
 
 function cancelEdit(){render();}
